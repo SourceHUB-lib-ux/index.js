@@ -64,7 +64,8 @@ By purchasing, redeeming, or using a Source Hub key, you acknowledge and agree t
 
   autoDeleteCommandMs: 5000,
   autoDeleteLoaderMs: 15000,
-  usedKeysFile: './usedKeys.json'
+  usedKeysFile: './usedKeys.json',
+  sourceCommandPrefix: '/source' // <- Added for /source command
 };
 
 /* ===============================
@@ -92,25 +93,46 @@ if (fs.existsSync(CONFIG.usedKeysFile)) {
    📩 COMMAND HANDLER
    =============================== */
 client.on('messageCreate', async (message) => {
-  if (message.content !== CONFIG.command) return;
+  // Ignore bot messages
+  if (message.author.bot) return;
 
-  const embed = new EmbedBuilder()
-    .setTitle(CONFIG.embed.title)
-    .setDescription(CONFIG.embed.description)
-    .setColor(CONFIG.embed.color)
-    .setImage(CONFIG.embed.imageURL)
-    .setTimestamp();
+  // ========== EXISTING !getloadersource COMMAND ==========
+  if (message.content === CONFIG.command) {
+    const embed = new EmbedBuilder()
+      .setTitle(CONFIG.embed.title)
+      .setDescription(CONFIG.embed.description)
+      .setColor(CONFIG.embed.color)
+      .setImage(CONFIG.embed.imageURL)
+      .setTimestamp();
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setLabel('Web Store').setStyle(ButtonStyle.Link).setURL(CONFIG.links.webstore),
-    new ButtonBuilder().setLabel('Support').setStyle(ButtonStyle.Link).setURL(CONFIG.links.support),
-    new ButtonBuilder().setCustomId('get_role').setLabel('Get Role').setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId('get_loader').setLabel('Get Loader').setStyle(ButtonStyle.Primary)
-  );
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setLabel('Web Store').setStyle(ButtonStyle.Link).setURL(CONFIG.links.webstore),
+      new ButtonBuilder().setLabel('Support').setStyle(ButtonStyle.Link).setURL(CONFIG.links.support),
+      new ButtonBuilder().setCustomId('get_role').setLabel('Get Role').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('get_loader').setLabel('Get Loader').setStyle(ButtonStyle.Primary)
+    );
 
-  await message.channel.send({ embeds: [embed], components: [row] });
+    await message.channel.send({ embeds: [embed], components: [row] });
 
-  setTimeout(() => message.delete().catch(() => {}), CONFIG.autoDeleteCommandMs);
+    setTimeout(() => message.delete().catch(() => {}), CONFIG.autoDeleteCommandMs);
+    return;
+  }
+
+  // ========== NEW /source COMMAND ==========
+  if (message.content.startsWith(CONFIG.sourceCommandPrefix)) {
+    // Extract the message after /source
+    const contentToSend = message.content.slice(CONFIG.sourceCommandPrefix.length).trim();
+    if (!contentToSend) return; // walang message, do nothing
+
+    try {
+      await message.channel.send(contentToSend); // Bot sends message
+      // Optional: delete user's /source command message to keep chat clean
+      await message.delete().catch(() => {});
+    } catch (err) {
+      console.error('Error sending /source message:', err);
+    }
+    return;
+  }
 });
 
 /* ===============================
